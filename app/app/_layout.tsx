@@ -10,7 +10,7 @@ globalThis.ReadableStream = ReadableStream;
 export default function RootLayout() {
   return (
     <Stack>
-      <Stack.Screen name="index" options={{ title: "吾輩は猫である" }} />
+      <Stack.Screen name="index" options={{ title: "小説生成" }} />
     </Stack>
   );
 }

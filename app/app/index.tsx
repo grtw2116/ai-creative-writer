@@ -1,3 +1,4 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Button,
@@ -5,8 +6,11 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
 
 export default function Index() {
   const HOST = "http://192.168.10.101:11434";
@@ -14,11 +18,68 @@ export default function Index() {
   const NUM_CONTEXT = 18384;
   const NUM_PREDICT = 512;
 
-  const TEMPLATE = `「これってもしかして...」「俺たち...」「私たち...」「入れ替わってる〜！？」`;
-
-  const [text, setText] = useState<string>(TEMPLATE);
+  const [text, setText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const processLine = (line: string) => {
+    if (line.trim()) {
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed.response) {
+          setText((prevText) => {
+            const newText = prevText + parsed.response;
+            if (scrollViewRef.current) {
+              scrollViewRef.current.scrollToEnd({ animated: false });
+            }
+            return newText;
+          });
+        }
+      } catch (e) {
+        console.error("行の解析中にエラーが発生しました", e);
+      }
+    }
+  };
+
+  const processBuffer = (buffer: string) => {
+    let lines = buffer.split("\n");
+    const remainingBuffer = lines.pop() || ""; // 最後の行は途中かもしれないので保持する
+
+    lines.forEach(processLine);
+
+    return remainingBuffer;
+  };
+
+  const handleResponse = async (response: Response) => {
+    if (!response.ok) {
+      throw new Error("小説の生成に失敗しました。もう一度お試しください。");
+    }
+
+    if (!response.body) {
+      throw new Error(
+        "サーバーからの応答がありません。もう一度お試しください。",
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let done = false;
+
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+      buffer += decoder.decode(value, { stream: true });
+
+      buffer = processBuffer(buffer);
+    }
+
+    // バッファに残った最後の行を処理
+    if (buffer.trim()) {
+      processLine(buffer);
+    }
+  };
 
   const generateNovel = async (prompt: string) => {
     setIsGenerating(true);
@@ -43,66 +104,9 @@ export default function Index() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate novel");
-      }
-
-      if (!response.body) {
-        throw new Error("Missing body");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-      let done = false;
-
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        buffer += decoder.decode(value, { stream: true });
-
-        let lines = buffer.split("\n");
-        buffer = lines.pop(); // 最後の行は途中かもしれないので保持する
-
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const parsed = JSON.parse(line);
-              if (parsed.response) {
-                setText((prevText) => {
-                  const newText = prevText + parsed.response;
-                  if (scrollViewRef.current) {
-                    scrollViewRef.current.scrollToEnd({ animated: false });
-                  }
-                  return newText;
-                });
-              }
-            } catch (e) {
-              console.error("Error parsing line", e);
-            }
-          }
-        }
-      }
-
-      // バッファに残った最後の行を処理
-      if (buffer.trim()) {
-        try {
-          const parsed = JSON.parse(buffer);
-          if (parsed.response && parsed.response > 0) {
-            setText((prevText) => {
-              const newText = prevText + parsed.response;
-              if (scrollViewRef.current) {
-                scrollViewRef.current.scrollToEnd({ animated: false });
-              }
-              return newText;
-            });
-          }
-        } catch (e) {
-          console.error("Error parsing line", e);
-        }
-      }
+      await handleResponse(response);
     } catch (e) {
-      console.error("Error generating novel", e);
+      console.error("小説生成中にエラーが発生しました", e);
     } finally {
       setIsGenerating(false);
     }
@@ -111,14 +115,37 @@ export default function Index() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView ref={scrollViewRef}>
-        <Text style={styles.text}>{text}</Text>
+        <TextInput
+          value={text}
+          style={styles.textInput}
+          onChangeText={(text) => setText(text)}
+          editable={isEditing}
+          multiline
+        />
       </ScrollView>
-      <Button title="クリア" onPress={() => setText(TEMPLATE)} />
-      <Button
-        title="小説を生成"
-        onPress={() => !isGenerating && generateNovel(text)}
-        disabled={isGenerating}
-      />
+      <View style={styles.buttonContainer}>
+        {isEditing ? (
+          <Button
+            title="完了"
+            onPress={() => setIsEditing(false)}
+            disabled={isGenerating}
+          />
+        ) : (
+          <>
+            <Button
+              title="編集"
+              onPress={() => setIsEditing(true)}
+              disabled={isGenerating}
+            />
+            <Button title="クリア" onPress={() => setText("")} />
+            <Button
+              title="続きを生成"
+              onPress={() => !isGenerating && generateNovel(text)}
+              disabled={text === "" || isGenerating || isEditing}
+            />
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -126,12 +153,27 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 20,
     padding: 20,
+    backgroundColor: "#FAF9F6",
   },
-  text: {
+  textInput: {
     fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
     fontSize: 18,
-    lineHeight: 50,
+    color: "#333",
+    padding: 15,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    margin: 10,
+  },
+  editButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    backgroundColor: "#fff",
+    borderRadius: 50,
+    padding: 10,
+    elevation: 5,
   },
 });

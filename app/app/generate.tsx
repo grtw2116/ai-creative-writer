@@ -19,6 +19,7 @@ import {
   Eraser,
   Pen,
   Redo,
+  RefreshCw,
   Speech,
   Undo,
 } from "lucide-react-native";
@@ -31,6 +32,7 @@ export default function GeneratePage() {
   const NUM_PREDICT = 256;
 
   const [text, setText] = useState<string>("吾輩は猫である。");
+  const [newText, setNewText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -65,7 +67,7 @@ export default function GeneratePage() {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollToEnd({ animated: false });
           }
-          setText((prevText) => prevText + parsed.response);
+          setNewText((prevText) => prevText + parsed.response);
           setCurrentProgress((prev) => prev + 1);
         }
         if (parsed.done) {
@@ -158,14 +160,20 @@ export default function GeneratePage() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView ref={scrollViewRef}>
-        <TextInput
-          value={text}
-          placeholder="ここに文章を入力してください。"
-          style={styles.textInput}
-          onChangeText={(text) => setText(text)}
-          editable={isEditing}
-          multiline
-        />
+        {isEditing ? (
+          <TextInput
+            value={text}
+            placeholder="ここに文章を入力してください。"
+            style={styles.text}
+            onChangeText={(text) => setText(text)}
+            multiline
+          />
+        ) : (
+          <Text style={styles.text}>
+            {text}
+            <Text style={styles.newText}>{newText}</Text>
+          </Text>
+        )}
       </ScrollView>
       {isGenerating && (
         <Animated.View
@@ -206,7 +214,11 @@ export default function GeneratePage() {
             <View style={styles.leftButtonContainer}>
               <TouchableOpacity
                 style={styles.leftButton}
-                onPress={() => setIsEditing(true)}
+                onPress={() => {
+                  setNewText("");
+                  setText((prevText) => prevText + newText);
+                  setIsEditing(true);
+                }}
                 disabled={isGenerating}
               >
                 <Pen size={24} color="#404040" />
@@ -242,16 +254,23 @@ export default function GeneratePage() {
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={styles.generateButton}
-              onPress={() => !isGenerating && generateNovel(text)}
+              onPress={() => {}}
+              disabled={isGenerating}
+              style={styles.leftButton}
+            >
+              <RefreshCw size={24} color="#404040" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ ...styles.generateButton, backgroundColor: "#404040" }}
+              onPress={() => {
+                if (isGenerating) return;
+                setNewText("");
+                setText((prevText) => prevText + newText);
+                generateNovel(text + newText);
+              }}
               disabled={text === "" || isGenerating || isEditing}
             >
-              <ChevronsRight
-                size={24}
-                color={
-                  text === "" || isGenerating || isEditing ? "#888" : "#404040"
-                }
-              />
+              <ChevronsRight size={24} color="#FAF9F6" />
             </TouchableOpacity>
           </>
         )}
@@ -265,10 +284,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FAF9F6",
   },
-  textInput: {
+  text: {
     fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
     fontSize: 18,
+    lineHeight: 36,
     color: "#333",
+    padding: 15,
+  },
+  newText: {
+    fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
+    fontSize: 18,
+    lineHeight: 36,
+    fontWeight: "bold",
     padding: 15,
   },
   generatingContainer: {
@@ -290,7 +317,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     height: 70,
     borderTopWidth: 1,
-    borderTopColor: "#414141",
+    borderTopColor: "#dddddd",
     backgroundColor: "#F2F1F1",
     flexDirection: "row",
     justifyContent: "space-between",
@@ -314,7 +341,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 10,
     borderRadius: 5,
-    borderWidth: 1,
     flexDirection: "row",
     marginVertical: 10,
     gap: 10,

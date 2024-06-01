@@ -32,6 +32,7 @@ export default function GeneratePage() {
 
   const { uniqueKey } = useLocalSearchParams();
   const [newText, setNewText] = useState<string>("");
+  const [editingText, setEditingText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -67,12 +68,13 @@ export default function GeneratePage() {
   );
 
   // 保存
-  const saveData = async () => {
+  const updateText = async (text: string) => {
+    setText(text);
     try {
       const key = uniqueKey as string;
       const updatedEntry = {
         title: title,
-        text: presentText,
+        text: text,
         context: context,
       };
       const value = JSON.stringify(updatedEntry);
@@ -196,7 +198,7 @@ export default function GeneratePage() {
         "ネットワーク環境を確認の上もう一度お試しください。",
       );
     } finally {
-      setText(presentText + newTextRef.current);
+      updateText(presentText + newTextRef.current);
       newTextRef.current = "";
       setNewText("");
       setCurrentProgress(0);
@@ -214,8 +216,7 @@ export default function GeneratePage() {
             isEditing || (
               <PopupMenu
                 onPressEditButton={() => {
-                  setNewText("");
-                  setText(presentText + newText);
+                  setEditingText(presentText);
                   setIsEditing(true);
                 }}
                 onPressMemoryButton={() => router.navigate("memory")}
@@ -226,10 +227,10 @@ export default function GeneratePage() {
       <ScrollView ref={scrollViewRef} style={styles.textContainer}>
         {isEditing ? (
           <TextInput
-            value={presentText}
+            value={editingText}
             placeholder="ここに文章を入力してください。"
             style={styles.text}
-            onChangeText={(text) => setText(text)}
+            onChangeText={(text) => setEditingText(text)}
             multiline
           />
         ) : (
@@ -262,17 +263,14 @@ export default function GeneratePage() {
           <>
             <TouchableOpacity
               style={styles.leftButton}
-              onPress={() => {
-                // TODO: replace editing state
-                setText("");
-              }}
+              onPress={() => setEditingText("")}
             >
               <Trash2 size={24} color="#404040" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.leftButton}
               onPress={() => {
-                // TODO: replace editing state
+                updateText(editingText);
                 setIsEditing(false);
               }}
             >
@@ -315,7 +313,6 @@ export default function GeneratePage() {
               style={{ ...styles.generateButton, backgroundColor: "#404040" }}
               onPress={() => {
                 generateNovel(makePrompt(presentText, context as string));
-                saveData();
               }}
               disabled={presentText === "" || isGenerating || isEditing}
             >

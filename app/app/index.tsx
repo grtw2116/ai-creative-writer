@@ -13,19 +13,27 @@ import {
   View,
 } from "react-native";
 
-function ListItem(entry: Entry) {
+type ListItem = {
+  key: string;
+  entry: Entry;
+};
+
+function ListItem({ item }: { item: ListItem }) {
   return (
-    <Link href={{ pathname: "generate", params: entry }} asChild>
+    <Link
+      href={{ pathname: "generate", params: { uniqueKey: item.key } }}
+      asChild
+    >
       <TouchableOpacity style={styles.listItemContainer}>
-        <Text style={styles.title}>{entry.title}</Text>
-        <Text style={styles.character}>{`${entry.text.length} 文字`}</Text>
+        <Text style={styles.title}>{item.entry.title}</Text>
+        <Text style={styles.character}>{`${item.entry.text.length} 文字`}</Text>
       </TouchableOpacity>
     </Link>
   );
 }
 
 export default function IndexPage() {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [list, setList] = useState<ListItem[]>([]);
 
   // 起動時にデータを読み込む
   useFocusEffect(
@@ -33,19 +41,15 @@ export default function IndexPage() {
       const loadEntries = async () => {
         const keys = await AsyncStorage.getAllKeys();
 
-        console.log("keys", keys);
-
-        const entries = [];
+        const list: ListItem[] = [];
         for (const k of keys) {
           const value = await AsyncStorage.getItem(k);
-          console.log("value", value);
           if (!value) continue;
-          entries.push(JSON.parse(value));
+
+          list.push({ key: k, entry: JSON.parse(value) });
         }
 
-        console.log("entries", entries);
-
-        setEntries(entries);
+        setList(list);
       };
 
       loadEntries();
@@ -60,15 +64,15 @@ export default function IndexPage() {
           headerRight: () => <EllipsisVertical size={24} color="#404040" />,
         }}
       />
-      {entries.length === 0 ? (
+      {list.length === 0 ? (
         <View style={styles.container}>
           <Text style={styles.altText}>右下の「+」から新規作成</Text>
         </View>
       ) : (
         <FlatList
-          data={entries}
-          renderItem={({ item }) => <ListItem {...item} />}
-          keyExtractor={(item) => item.uniqueKey}
+          data={list}
+          renderItem={({ item }) => <ListItem item={item} />}
+          keyExtractor={(item) => item.key}
         />
       )}
       <Button onPress={() => AsyncStorage.clear()} title="Clear (for debug)" />

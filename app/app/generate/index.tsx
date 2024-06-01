@@ -11,12 +11,18 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronsRight, Redo, Trash2, Undo } from "lucide-react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import {
+  Stack,
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
 import { PopupMenu } from "./components/popupMenu";
 import useUndo from "use-undo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Entry } from "@/types";
 
 export default function GeneratePage() {
   const HOST = "http://192.168.10.101:11434";
@@ -24,53 +30,57 @@ export default function GeneratePage() {
   const NUM_CONTEXT = 18384;
   const NUM_PREDICT = 128;
 
-  const {
-    uniqueKey,
-    title,
-    text: loadedText,
-    context,
-  } = useLocalSearchParams();
+  const { uniqueKey } = useLocalSearchParams();
   const [newText, setNewText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentProgress, setCurrentProgress] = useState<number>(0);
   const newTextRef = useRef<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [context, setContext] = useState<string>("");
 
   const [
     textState,
     { set: setText, undo: undoText, redo: redoText, canUndo, canRedo },
-  ] = useUndo("吾輩は猫である。");
+  ] = useUndo("");
 
   const { present: presentText } = textState;
 
   const translateYAnim = useRef(new Animated.Value(40)).current;
 
   // 読み込む
-  useEffect(() => {
-    setText(loadedText as string);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const loadEntries = async () => {
+        const value = await AsyncStorage.getItem(uniqueKey as string);
+        if (!value) throw new Error("データが見つかりませんでした。");
+        const entry = JSON.parse(value) as Entry;
+
+        setText(entry.text);
+        setTitle(entry.title);
+        setContext(entry.context);
+      };
+
+      loadEntries();
+    }, []),
+  );
 
   // 保存
-  useEffect(() => {
-    const saveData = async () => {
-      try {
-        const key = uniqueKey as string;
-        const updatedEntry = {
-          uniqueKey: key,
-          title: title,
-          text: presentText,
-          context: context,
-        };
-        const value = JSON.stringify(updatedEntry);
-        await AsyncStorage.setItem(key, value);
-      } catch (e) {
-        console.error("データの保存中にエラーが発生しました", e);
-      }
-    };
-
-    saveData();
-  }, [presentText]);
+  const saveData = async () => {
+    try {
+      const key = uniqueKey as string;
+      const updatedEntry = {
+        title: title,
+        text: presentText,
+        context: context,
+      };
+      const value = JSON.stringify(updatedEntry);
+      await AsyncStorage.setItem(key, value);
+    } catch (e) {
+      console.error("データの保存中にエラーが発生しました", e);
+    }
+  };
 
   const startSlideUp = () => {
     translateYAnim.setValue(40);
@@ -147,7 +157,12 @@ export default function GeneratePage() {
     }
   };
 
+  const makePrompt = (text: string, context: string) => {
+    return `${context}${context && "\n---"}\n${text}`;
+  };
+
   const generateNovel = async (prompt: string) => {
+    console.log("prompt", prompt);
     setIsGenerating(true);
     setNewText("");
     startSlideUp(); // Start slide-up animation
@@ -299,7 +314,8 @@ export default function GeneratePage() {
             <TouchableOpacity
               style={{ ...styles.generateButton, backgroundColor: "#404040" }}
               onPress={() => {
-                generateNovel(presentText);
+                generateNovel(makePrompt(presentText, context as string));
+                saveData();
               }}
               disabled={presentText === "" || isGenerating || isEditing}
             >

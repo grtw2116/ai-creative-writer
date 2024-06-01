@@ -1,5 +1,7 @@
 import { Stack } from "expo-router";
+//@ts-ignore
 import { polyfill as polyfillFetch } from "react-native-polyfill-globals/src/fetch";
+//@ts-ignore
 import { polyfill as polyfillEncoding } from "react-native-polyfill-globals/src/encoding";
 import { ReadableStream } from "web-streams-polyfill";
 import { Platform } from "react-native";
@@ -9,6 +11,8 @@ import { StatusBar } from "expo-status-bar";
 
 polyfillFetch();
 polyfillEncoding();
+
+//@ts-ignore
 globalThis.ReadableStream = ReadableStream;
 
 export default function RootLayout() {

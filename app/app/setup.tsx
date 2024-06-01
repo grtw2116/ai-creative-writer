@@ -11,10 +11,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+const key = new Date().toISOString();
+
 export default function SetupPage() {
-  const key = new Date().toISOString();
   const [entry, setEntry] = useState<Entry>({
-    uniqueKey: key,
     title: "",
     text: "",
     context: "",
@@ -22,7 +22,6 @@ export default function SetupPage() {
 
   const saveData = async (entry: Entry) => {
     try {
-      const key = entry.uniqueKey;
       const value = JSON.stringify(entry);
       await AsyncStorage.setItem(key, value);
     } catch (e) {
@@ -37,10 +36,20 @@ export default function SetupPage() {
           title: "新規作成",
           headerRight: () => (
             <TouchableOpacity
+              style={styles.doneButton}
               onPress={async () => {
                 // TODO: validation
-                await saveData(entry);
-                router.replace({ pathname: "generate", params: entry });
+
+                // あらすじの最後に区切り線を追加
+                const entryToSave = {
+                  ...entry,
+                  text: `${entry.text}\n---\n`,
+                };
+                await saveData(entryToSave);
+                router.replace({
+                  pathname: "generate",
+                  params: { uniqueKey: key },
+                });
               }}
             >
               <Check size={24} color="#404040" />
@@ -83,6 +92,9 @@ export default function SetupPage() {
 }
 
 const styles = StyleSheet.create({
+  doneButton: {
+    padding: 8,
+  },
   optionContainer: {
     paddingHorizontal: 16,
   },

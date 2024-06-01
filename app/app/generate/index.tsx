@@ -11,11 +11,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsRight, Redo, Trash2, Undo } from "lucide-react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { PopupMenu } from "./components/popupMenu";
 import useUndo from "use-undo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function GeneratePage() {
   const HOST = "http://192.168.10.101:11434";
@@ -23,6 +24,12 @@ export default function GeneratePage() {
   const NUM_CONTEXT = 18384;
   const NUM_PREDICT = 128;
 
+  const {
+    uniqueKey,
+    title,
+    text: loadedText,
+    context,
+  } = useLocalSearchParams();
   const [newText, setNewText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -38,6 +45,32 @@ export default function GeneratePage() {
   const { present: presentText } = textState;
 
   const translateYAnim = useRef(new Animated.Value(40)).current;
+
+  // 読み込む
+  useEffect(() => {
+    setText(loadedText as string);
+  }, []);
+
+  // 保存
+  useEffect(() => {
+    const saveData = async () => {
+      try {
+        const key = uniqueKey as string;
+        const updatedEntry = {
+          uniqueKey: key,
+          title: title,
+          text: presentText,
+          context: context,
+        };
+        const value = JSON.stringify(updatedEntry);
+        await AsyncStorage.setItem(key, value);
+      } catch (e) {
+        console.error("データの保存中にエラーが発生しました", e);
+      }
+    };
+
+    saveData();
+  }, [presentText]);
 
   const startSlideUp = () => {
     translateYAnim.setValue(40);
@@ -240,7 +273,7 @@ export default function GeneratePage() {
             >
               <Undo
                 size={24}
-                color={!canUndo || isGenerating ? "#B0B0A0" : "#404040"}
+                color={!canUndo || isGenerating ? "#B0B0B0" : "#404040"}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -250,7 +283,7 @@ export default function GeneratePage() {
             >
               <Redo
                 size={24}
-                color={!canRedo || isGenerating ? "#B0B0A0" : "#404040"}
+                color={!canRedo || isGenerating ? "#B0B0B0" : "#404040"}
               />
             </TouchableOpacity>
             {/* <TouchableOpacity */}

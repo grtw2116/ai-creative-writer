@@ -13,17 +13,15 @@ import {
 } from "react-native";
 import { useRef, useState } from "react";
 import {
-  Book,
   Check,
   ChevronsRight,
-  Eraser,
-  Pen,
   Redo,
   RefreshCw,
-  Speech,
+  Trash2,
   Undo,
 } from "lucide-react-native";
-import { Link } from "expo-router";
+import { Stack } from "expo-router";
+import { PopupMenu } from "./components/popupMenu";
 
 export default function GeneratePage() {
   const HOST = "http://192.168.10.101:11434";
@@ -62,7 +60,6 @@ export default function GeneratePage() {
     if (line.trim()) {
       try {
         const parsed = JSON.parse(line);
-        console.log("行を解析しました", parsed);
         if (parsed.response) {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollToEnd({ animated: false });
@@ -72,7 +69,6 @@ export default function GeneratePage() {
         }
         if (parsed.done) {
           contextRef.current = parsed.context;
-          console.log("コンテキストを更新しました", contextRef.current);
         }
       } catch (e) {
         console.error("行の解析中にエラーが発生しました", e);
@@ -159,6 +155,21 @@ export default function GeneratePage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: "小説生成",
+          headerRight: () =>
+            isEditing || (
+              <PopupMenu
+                onPressEditButton={() => {
+                  setNewText("");
+                  setText(text + newText);
+                  setIsEditing(true);
+                }}
+              />
+            ),
+        }}
+      />
       <ScrollView ref={scrollViewRef}>
         {isEditing ? (
           <TextInput
@@ -200,7 +211,7 @@ export default function GeneratePage() {
               style={styles.leftButton}
               onPress={() => setText("")}
             >
-              <Eraser size={24} color="#404040" />
+              <Trash2 size={24} color="#404040" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.leftButton}
@@ -211,50 +222,51 @@ export default function GeneratePage() {
           </>
         ) : (
           <>
-            <View style={styles.leftButtonContainer}>
-              <TouchableOpacity
-                style={styles.leftButton}
-                onPress={() => {
-                  setNewText("");
-                  setText((prevText) => prevText + newText);
-                  setIsEditing(true);
-                }}
-                disabled={isGenerating}
-              >
-                <Pen size={24} color="#404040" />
-              </TouchableOpacity>
-              <Link href="memory" asChild>
-                <TouchableOpacity
-                  disabled={isGenerating}
-                  style={styles.leftButton}
-                >
-                  <Book size={24} color="#404040" />
-                </TouchableOpacity>
-              </Link>
-              <TouchableOpacity
-                onPress={() => {}}
-                disabled={isGenerating}
-                style={styles.leftButton}
-              >
-                <Speech size={24} color="#404040" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {}}
-                disabled={isGenerating}
-                style={styles.leftButton}
-              >
-                <Undo size={24} color="#404040" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {}}
-                disabled={isGenerating}
-                style={styles.leftButton}
-              >
-                <Redo size={24} color="#404040" />
-              </TouchableOpacity>
-            </View>
+            {/* <TouchableOpacity */}
+            {/*   style={styles.leftButton} */}
+            {/*   onPress={() => { */}
+            {/*     setNewText(""); */}
+            {/*     setText((prevText) => prevText + newText); */}
+            {/*     setIsEditing(true); */}
+            {/*   }} */}
+            {/*   disabled={isGenerating} */}
+            {/* > */}
+            {/*   <Pen size={24} color="#404040" /> */}
+            {/* </TouchableOpacity> */}
+            {/* <Link href="memory" asChild> */}
+            {/*   <TouchableOpacity */}
+            {/*     disabled={isGenerating} */}
+            {/*     style={styles.leftButton} */}
+            {/*   > */}
+            {/*     <Book size={24} color="#404040" /> */}
+            {/*   </TouchableOpacity> */}
+            {/* </Link> */}
+            {/* <TouchableOpacity */}
+            {/*   onPress={() => {}} */}
+            {/*   disabled={isGenerating} */}
+            {/*   style={styles.leftButton} */}
+            {/* > */}
+            {/*   <Speech size={24} color="#404040" /> */}
+            {/* </TouchableOpacity> */}
             <TouchableOpacity
               onPress={() => {}}
+              disabled={isGenerating}
+              style={styles.leftButton}
+            >
+              <Undo size={24} color="#404040" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {}}
+              disabled={isGenerating}
+              style={{ ...styles.leftButton, flexGrow: 1 }}
+            >
+              <Redo size={24} color="#404040" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setNewText("");
+                generateNovel(text);
+              }}
               disabled={isGenerating}
               style={styles.leftButton}
             >
@@ -320,14 +332,10 @@ const styles = StyleSheet.create({
     borderTopColor: "#dddddd",
     backgroundColor: "#F2F1F1",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    width: "100%",
     paddingHorizontal: 20,
-  },
-  leftButtonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    gap: 20,
   },
   leftButton: {
     padding: 10,
@@ -338,11 +346,8 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     fontWeight: "bold",
-    alignItems: "center",
     padding: 10,
     borderRadius: 5,
-    flexDirection: "row",
     marginVertical: 10,
-    gap: 10,
   },
 });

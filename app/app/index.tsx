@@ -1,4 +1,5 @@
-import { Link } from "expo-router";
+import { Link, Stack } from "expo-router";
+import { EllipsisVertical } from "lucide-react-native";
 import { FlatList, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 function ListItem({
@@ -46,10 +47,18 @@ const data = [
 
 export default function IndexPage() {
   return (
-    <FlatList
-      data={data}
-      renderItem={({ item }) => <ListItem {...item} />}
-      keyExtractor={(item) => item.id.toString()}
-    />
+    <>
+      <Stack.Screen
+        options={{
+          title: "AI Creative Writer",
+          headerRight: () => <EllipsisVertical size={24} color="#404040" />,
+        }}
+      />
+      <FlatList
+        data={data}
+        renderItem={({ item }) => <ListItem {...item} />}
+        keyExtractor={(item) => item.id.toString()}
+      />
+    </>
   );
 }

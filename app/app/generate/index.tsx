@@ -223,25 +223,6 @@ export default function GeneratePage() {
         ) : (
           <>
             {/* <TouchableOpacity */}
-            {/*   style={styles.leftButton} */}
-            {/*   onPress={() => { */}
-            {/*     setNewText(""); */}
-            {/*     setText((prevText) => prevText + newText); */}
-            {/*     setIsEditing(true); */}
-            {/*   }} */}
-            {/*   disabled={isGenerating} */}
-            {/* > */}
-            {/*   <Pen size={24} color="#404040" /> */}
-            {/* </TouchableOpacity> */}
-            {/* <Link href="memory" asChild> */}
-            {/*   <TouchableOpacity */}
-            {/*     disabled={isGenerating} */}
-            {/*     style={styles.leftButton} */}
-            {/*   > */}
-            {/*     <Book size={24} color="#404040" /> */}
-            {/*   </TouchableOpacity> */}
-            {/* </Link> */}
-            {/* <TouchableOpacity */}
             {/*   onPress={() => {}} */}
             {/*   disabled={isGenerating} */}
             {/*   style={styles.leftButton} */}

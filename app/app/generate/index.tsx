@@ -12,35 +12,36 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRef, useState } from "react";
-import {
-  Check,
-  ChevronsRight,
-  Redo,
-  RefreshCw,
-  Trash2,
-  Undo,
-} from "lucide-react-native";
+import { Check, ChevronsRight, Redo, Trash2, Undo } from "lucide-react-native";
 import { Stack } from "expo-router";
 import { PopupMenu } from "./components/popupMenu";
+import useUndo from "use-undo";
 
 export default function GeneratePage() {
   const HOST = "http://192.168.10.101:11434";
   const MODEL = "vecteus";
   const NUM_CONTEXT = 18384;
-  const NUM_PREDICT = 256;
+  const NUM_PREDICT = 128;
 
-  const [text, setText] = useState<string>("吾輩は猫である。");
+  // const [text, setText] = useState<string>("吾輩は猫である。");
   const [newText, setNewText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentProgress, setCurrentProgress] = useState<number>(0);
-  const contextRef = useRef<number[]>([]);
+  const newTextRef = useRef<string>("");
 
-  const translateYAnim = useRef(new Animated.Value(100)).current; // Initial position below the button container
+  const [
+    textState,
+    { set: setText, undo: undoText, redo: redoText, canUndo, canRedo },
+  ] = useUndo("吾輩は猫である。");
+
+  const { present: presentText } = textState;
+
+  const translateYAnim = useRef(new Animated.Value(40)).current;
 
   const startSlideUp = () => {
-    translateYAnim.setValue(100);
+    translateYAnim.setValue(40);
     Animated.timing(translateYAnim, {
       toValue: 0,
       duration: 500,
@@ -50,7 +51,8 @@ export default function GeneratePage() {
 
   const startSlideDown = () => {
     Animated.timing(translateYAnim, {
-      toValue: 100,
+      delay: 1000,
+      toValue: 40,
       duration: 500,
       useNativeDriver: true,
     }).start();
@@ -64,11 +66,9 @@ export default function GeneratePage() {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollToEnd({ animated: false });
           }
+          newTextRef.current = newTextRef.current + parsed.response;
           setNewText((prevText) => prevText + parsed.response);
           setCurrentProgress((prev) => prev + 1);
-        }
-        if (parsed.done) {
-          contextRef.current = parsed.context;
         }
       } catch (e) {
         console.error("行の解析中にエラーが発生しました", e);
@@ -117,10 +117,12 @@ export default function GeneratePage() {
 
   const generateNovel = async (prompt: string) => {
     setIsGenerating(true);
+    setNewText("");
     startSlideUp(); // Start slide-up animation
 
     try {
       const response = await fetch(`${HOST}/api/generate`, {
+        //@ts-ignore
         reactNative: {
           textStreaming: true,
         },
@@ -147,8 +149,11 @@ export default function GeneratePage() {
         "ネットワーク環境を確認の上もう一度お試しください。",
       );
     } finally {
+      setText(presentText + newTextRef.current);
+      newTextRef.current = "";
+      setNewText("");
       setCurrentProgress(0);
-      startSlideDown(); // Start slide-down animation
+      startSlideDown();
       setIsGenerating(false);
     }
   };
@@ -163,17 +168,17 @@ export default function GeneratePage() {
               <PopupMenu
                 onPressEditButton={() => {
                   setNewText("");
-                  setText(text + newText);
+                  setText(presentText + newText);
                   setIsEditing(true);
                 }}
               />
             ),
         }}
       />
-      <ScrollView ref={scrollViewRef}>
+      <ScrollView ref={scrollViewRef} style={styles.textContainer}>
         {isEditing ? (
           <TextInput
-            value={text}
+            value={presentText}
             placeholder="ここに文章を入力してください。"
             style={styles.text}
             onChangeText={(text) => setText(text)}
@@ -181,7 +186,7 @@ export default function GeneratePage() {
           />
         ) : (
           <Text style={styles.text}>
-            {text}
+            {presentText}
             <Text style={styles.newText}>{newText}</Text>
           </Text>
         )}
@@ -209,59 +214,61 @@ export default function GeneratePage() {
           <>
             <TouchableOpacity
               style={styles.leftButton}
-              onPress={() => setText("")}
+              onPress={() => {
+                // TODO: replace editing state
+                setText("");
+              }}
             >
               <Trash2 size={24} color="#404040" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.leftButton}
-              onPress={() => setIsEditing(false)}
+              onPress={() => {
+                // TODO: replace editing state
+                setIsEditing(false);
+              }}
             >
               <Check size={24} color="#404040" />
             </TouchableOpacity>
           </>
         ) : (
           <>
+            <TouchableOpacity
+              onPress={() => undoText()}
+              disabled={!canUndo || isGenerating}
+              style={styles.leftButton}
+            >
+              <Undo
+                size={24}
+                color={!canUndo || isGenerating ? "#B0B0A0" : "#404040"}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => redoText()}
+              disabled={!canRedo || isGenerating}
+              style={{ ...styles.leftButton, flexGrow: 1 }}
+            >
+              <Redo
+                size={24}
+                color={!canRedo || isGenerating ? "#B0B0A0" : "#404040"}
+              />
+            </TouchableOpacity>
             {/* <TouchableOpacity */}
-            {/*   onPress={() => {}} */}
+            {/*   onPress={() => { */}
+            {/*     undoText(); */}
+            {/*     generateNovel(presentText); */}
+            {/*   }} */}
             {/*   disabled={isGenerating} */}
             {/*   style={styles.leftButton} */}
             {/* > */}
-            {/*   <Speech size={24} color="#404040" /> */}
+            {/*   <RefreshCw size={24} color="#404040" /> */}
             {/* </TouchableOpacity> */}
-            <TouchableOpacity
-              onPress={() => {}}
-              disabled={isGenerating}
-              style={styles.leftButton}
-            >
-              <Undo size={24} color="#404040" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {}}
-              disabled={isGenerating}
-              style={{ ...styles.leftButton, flexGrow: 1 }}
-            >
-              <Redo size={24} color="#404040" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setNewText("");
-                generateNovel(text);
-              }}
-              disabled={isGenerating}
-              style={styles.leftButton}
-            >
-              <RefreshCw size={24} color="#404040" />
-            </TouchableOpacity>
             <TouchableOpacity
               style={{ ...styles.generateButton, backgroundColor: "#404040" }}
               onPress={() => {
-                if (isGenerating) return;
-                setNewText("");
-                setText((prevText) => prevText + newText);
-                generateNovel(text + newText);
+                generateNovel(presentText);
               }}
-              disabled={text === "" || isGenerating || isEditing}
+              disabled={presentText === "" || isGenerating || isEditing}
             >
               <ChevronsRight size={24} color="#FAF9F6" />
             </TouchableOpacity>
@@ -275,6 +282,9 @@ export default function GeneratePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F2F1F1",
+  },
+  textContainer: {
     backgroundColor: "#FAF9F6",
   },
   text: {
@@ -292,16 +302,13 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   generatingContainer: {
-    position: "absolute",
-    bottom: 70,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#F2F1F1",
     paddingVertical: 10,
     paddingHorizontal: 20,
+    height: 40,
   },
   generatingText: {
     marginLeft: 10,

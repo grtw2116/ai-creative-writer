@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useRef, useState } from "react";
 import { Check, ChevronsRight, Redo, Trash2, Undo } from "lucide-react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { PopupMenu } from "./components/popupMenu";
 import useUndo from "use-undo";
 
@@ -23,7 +23,6 @@ export default function GeneratePage() {
   const NUM_CONTEXT = 18384;
   const NUM_PREDICT = 128;
 
-  // const [text, setText] = useState<string>("吾輩は猫である。");
   const [newText, setNewText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -171,6 +170,7 @@ export default function GeneratePage() {
                   setText(presentText + newText);
                   setIsEditing(true);
                 }}
+                onPressMemoryButton={() => router.navigate("memory")}
               />
             ),
         }}

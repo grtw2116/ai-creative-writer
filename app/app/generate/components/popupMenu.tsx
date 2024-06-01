@@ -1,4 +1,10 @@
-import { Book, Edit, EllipsisVertical, Speech } from "lucide-react-native";
+import {
+  Book,
+  Edit,
+  EllipsisVertical,
+  Palette,
+  Speech,
+} from "lucide-react-native";
 import { Platform, StyleSheet, Text } from "react-native";
 import {
   Menu,
@@ -9,12 +15,14 @@ import {
 
 export function PopupMenu({
   onPressEditButton,
+  onPressMemoryButton,
 }: {
   onPressEditButton: () => void;
+  onPressMemoryButton: () => void;
 }) {
   return (
     <Menu>
-      <MenuTrigger>
+      <MenuTrigger style={styles.trigger}>
         <EllipsisVertical size={24} color="#404040" />
       </MenuTrigger>
       <MenuOptions
@@ -25,9 +33,9 @@ export function PopupMenu({
       >
         <MenuOption onSelect={onPressEditButton}>
           <Edit size={18} color="#404040" />
-          <Text style={styles.optionText}>編集</Text>
+          <Text style={styles.optionText}>文章を編集</Text>
         </MenuOption>
-        <MenuOption onSelect={() => {}}>
+        <MenuOption onSelect={onPressMemoryButton}>
           <Book size={18} color="#404040" />
           <Text style={styles.optionText}>メモリ</Text>
         </MenuOption>
@@ -35,12 +43,19 @@ export function PopupMenu({
           <Speech size={18} color="#404040" />
           <Text style={styles.optionText}>読み上げ</Text>
         </MenuOption>
+        <MenuOption onSelect={() => {}}>
+          <Palette size={18} color="#404040" />
+          <Text style={styles.optionText}>テーマ</Text>
+        </MenuOption>
       </MenuOptions>
     </Menu>
   );
 }
 
 const styles = StyleSheet.create({
+  trigger: {
+    padding: 8,
+  },
   options: {
     marginTop: 40,
     borderRadius: 5,

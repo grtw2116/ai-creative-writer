@@ -5,6 +5,7 @@ import { ReadableStream } from "web-streams-polyfill";
 import { Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { MenuProvider } from "react-native-popup-menu";
+import { StatusBar } from "expo-status-bar";
 
 polyfillFetch();
 polyfillEncoding();
@@ -14,6 +15,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <MenuProvider>
+        <StatusBar style="auto" />
         <Stack
           screenOptions={{
             headerStyle: { backgroundColor: "#F2F1F1" },

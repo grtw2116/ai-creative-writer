@@ -7,7 +7,6 @@ import {
   Text,
   TextInput,
   View,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -29,10 +28,10 @@ import {
 } from "expo-router";
 import { PopupMenu } from "./components/popupMenu";
 import useUndo from "use-undo";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Entry } from "@/types";
 import { useSpeech } from "@/hooks/useSpeech";
 import { IconButton } from "@/components/IconButton";
+import { useStorage } from "@/hooks/useStorage";
 
 export default function GenerateScreen() {
   const HOST = "http://192.168.10.101:11434";
@@ -42,16 +41,20 @@ export default function GenerateScreen() {
 
   const speech = useSpeech();
   const { uniqueKey } = useLocalSearchParams();
+  const { loadEntry, saveEntry } = useStorage();
+
   const [newText, setNewText] = useState<string>("");
   const [editingText, setEditingText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [ttsMode, setTtsMode] = useState<boolean>(false);
-  const scrollViewRef = useRef<ScrollView>(null);
   const [currentProgress, setCurrentProgress] = useState<number>(0);
-  const newTextRef = useRef<string>("");
   const [title, setTitle] = useState<string>("");
   const [context, setContext] = useState<string>("");
+  const [summary, setSummary] = useState<string>("");
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const newTextRef = useRef<string>("");
 
   const [
     textState,
@@ -62,38 +65,34 @@ export default function GenerateScreen() {
 
   const translateYAnim = useRef(new Animated.Value(40)).current;
 
-  // 読み込む
   useFocusEffect(
     useCallback(() => {
       const loadEntries = async () => {
-        const value = await AsyncStorage.getItem(uniqueKey as string);
-        if (!value) throw new Error("データが見つかりませんでした。");
-        const entry = JSON.parse(value) as Entry;
+        const key = uniqueKey as string;
+        const entry = await loadEntry(key);
 
         setText(entry.text);
         setTitle(entry.title);
         setContext(entry.context);
+        setSummary(entry.summary);
       };
 
       loadEntries();
     }, []),
   );
 
-  // 保存
   const updateText = async (text: string) => {
     setText(text);
-    try {
-      const key = uniqueKey as string;
-      const updatedEntry = {
-        title: title,
-        text: text,
-        context: context,
-      };
-      const value = JSON.stringify(updatedEntry);
-      await AsyncStorage.setItem(key, value);
-    } catch (e) {
-      console.error("データの保存中にエラーが発生しました", e);
-    }
+
+    const key = uniqueKey as string;
+    const entry: Entry = {
+      title: title,
+      summary: summary,
+      text: text,
+      context: context,
+    };
+
+    await saveEntry(key, entry);
   };
 
   const startSlideUp = () => {
@@ -171,12 +170,16 @@ export default function GenerateScreen() {
     }
   };
 
-  const makePrompt = (text: string, context: string) => {
-    return `${context}${context && "\n---"}\n${text}`;
+  const makePrompt = (text: string, summary: string, context: string) => {
+    const titleText = title ? `タイトル：${title}\n` : "";
+    const summaryText = summary ? `あらすじ：${summary}\n` : "";
+    const contextText = context ? `設定：${context}\n` : "";
+    const divider = "---\n";
+
+    return `${titleText}${summaryText}${contextText}${divider}${text}`;
   };
 
   const generateNovel = async (prompt: string) => {
-    console.log("prompt", prompt);
     setIsGenerating(true);
     setNewText("");
     startSlideUp(); // Start slide-up animation
@@ -238,6 +241,9 @@ export default function GenerateScreen() {
         }}
       />
       <ScrollView ref={scrollViewRef} style={styles.textContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.summary}>{summary}</Text>
+        <View style={styles.divider} />
         {isEditing ? (
           <TextInput
             value={editingText}
@@ -313,9 +319,12 @@ export default function GenerateScreen() {
             <IconButton
               icon={ChevronsRight}
               onPress={() => {
-                generateNovel(makePrompt(presentText, context as string));
+                const prompt = makePrompt(presentText, summary, context);
+                console.log("prompt", prompt);
+                generateNovel(prompt);
               }}
-              disabled={presentText === "" || isGenerating || isEditing}
+              disabled={isGenerating || isEditing}
+              isLoading={isGenerating}
               color="#FAF9F6"
               style={styles.generateButton}
             />
@@ -332,14 +341,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F1F1",
   },
   textContainer: {
+    padding: 16,
     backgroundColor: "#FAF9F6",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+    fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
+  },
+  summary: {
+    color: "#999",
+    fontSize: 14,
+    marginBottom: 32,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#ddd",
+    marginBottom: 16,
   },
   text: {
     fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
     fontSize: 18,
     lineHeight: 36,
     color: "#333",
-    padding: 15,
   },
   newText: {
     fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",

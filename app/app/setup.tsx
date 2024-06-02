@@ -22,6 +22,7 @@ const contextPlaceholder = `吾輩（猫）: 主人公であり、語り手の�
 export default function SetupScreen() {
   const [newEntry, setNewEntry] = useState<Entry>({
     title: "",
+    summary: "",
     text: "",
     context: "",
   });
@@ -36,7 +37,6 @@ export default function SetupScreen() {
             <TouchableOpacity
               style={styles.doneButton}
               onPress={async () => {
-                // TODO: validation
                 await saveEntry(key, newEntry);
                 router.replace({
                   pathname: "generate",
@@ -51,7 +51,9 @@ export default function SetupScreen() {
       />
       <ScrollView style={styles.optionContainer}>
         <Text style={styles.h2}>物語設定</Text>
-        <Text style={styles.h3}>タイトル</Text>
+        <Text style={styles.h3}>
+          タイトル<Text style={styles.required}>*</Text>
+        </Text>
         <TextInput
           style={styles.titleInput}
           onChangeText={(text) => setNewEntry({ ...newEntry, title: text })}
@@ -60,16 +62,18 @@ export default function SetupScreen() {
         <Text style={styles.h3}>あらすじ</Text>
         <TextInput
           style={styles.textArea}
-          onChangeText={(text) => setNewEntry({ ...newEntry, text: text })}
+          onChangeText={(text) => setNewEntry({ ...newEntry, summary: text })}
           placeholder={textPlaceholder}
           multiline
         />
+        <Text style={styles.tips}>
+          あらすじに基づいてAIが物語を生成します。
+          ここに入力された文章は、生成時にプロンプトの先頭に追加されます。
+        </Text>
         <Text style={styles.h3}>重要な物語設定</Text>
         <TextInput
           style={styles.textArea}
-          onChangeText={(text) =>
-            setNewEntry({ ...newEntry, context: `${text}\n---\n` })
-          }
+          onChangeText={(text) => setNewEntry({ ...newEntry, context: text })}
           placeholder={contextPlaceholder}
           multiline
         />
@@ -100,6 +104,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 16,
     marginBottom: 12,
+  },
+  required: {
+    marginLeft: 4,
+    color: "red",
   },
   tips: {
     marginTop: 8,

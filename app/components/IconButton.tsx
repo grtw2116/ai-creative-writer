@@ -1,10 +1,11 @@
 import { LucideIcon } from "lucide-react-native";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 
 export function IconButton({
   icon: Icon,
   onPress,
   disabled = false,
+  isLoading = false,
   size = 24,
   color = "#404040",
   colorDisabled = "#B0B0B0",
@@ -13,6 +14,7 @@ export function IconButton({
   icon: LucideIcon;
   onPress: () => void;
   disabled?: boolean;
+  isLoading?: boolean;
   size?: number;
   color?: string;
   colorDisabled?: string;
@@ -26,7 +28,11 @@ export function IconButton({
       style={styles.buttonContainer && style}
       disabled={disabled}
     >
-      <Icon size={size} color={buttonColor} />
+      {isLoading ? (
+        <ActivityIndicator size="small" color={buttonColor} />
+      ) : (
+        <Icon size={size} color={buttonColor} />
+      )}
     </TouchableOpacity>
   );
 }

@@ -16,9 +16,11 @@ import {
 export function PopupMenu({
   onPressEditButton,
   onPressMemoryButton,
+  onPressTTSButton,
 }: {
   onPressEditButton: () => void;
   onPressMemoryButton: () => void;
+  onPressTTSButton: () => void;
 }) {
   return (
     <Menu>
@@ -39,7 +41,7 @@ export function PopupMenu({
           <Book size={18} color="#404040" />
           <Text style={styles.optionText}>メモリ</Text>
         </MenuOption>
-        <MenuOption onSelect={() => {}}>
+        <MenuOption onSelect={onPressTTSButton}>
           <Speech size={18} color="#404040" />
           <Text style={styles.optionText}>読み上げ</Text>
         </MenuOption>

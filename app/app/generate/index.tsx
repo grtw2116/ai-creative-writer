@@ -11,8 +11,16 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronsRight, Redo, Trash2, Undo } from "lucide-react-native";
+import { useCallback, useRef, useState } from "react";
+import {
+  Check,
+  ChevronsRight,
+  Pause,
+  Play,
+  Redo,
+  Trash2,
+  Undo,
+} from "lucide-react-native";
 import {
   Stack,
   router,
@@ -23,6 +31,7 @@ import { PopupMenu } from "./components/popupMenu";
 import useUndo from "use-undo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Entry } from "@/types";
+import { useSpeech } from "@/hooks/useSpeech";
 
 export default function GeneratePage() {
   const HOST = "http://192.168.10.101:11434";
@@ -30,11 +39,13 @@ export default function GeneratePage() {
   const NUM_CONTEXT = 18384;
   const NUM_PREDICT = 128;
 
+  const speech = useSpeech();
   const { uniqueKey } = useLocalSearchParams();
   const [newText, setNewText] = useState<string>("");
   const [editingText, setEditingText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [ttsMode, setTtsMode] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentProgress, setCurrentProgress] = useState<number>(0);
   const newTextRef = useRef<string>("");
@@ -220,6 +231,7 @@ export default function GeneratePage() {
                   setIsEditing(true);
                 }}
                 onPressMemoryButton={() => router.navigate("memory")}
+                onPressTTSButton={() => setTtsMode(true)}
               />
             ),
         }}
@@ -257,6 +269,30 @@ export default function GeneratePage() {
             style={styles.progressText}
           >{`${currentProgress} / ${NUM_PREDICT}`}</Text>
         </Animated.View>
+      )}
+      {ttsMode && (
+        <View style={styles.ttsContainer}>
+          <TouchableOpacity
+            onPress={() => speech.speak(presentText)}
+            disabled={presentText === "" || isGenerating}
+            style={styles.leftButton}
+          >
+            <Play
+              size={24}
+              color={presentText === "" || isGenerating ? "#B0B0B0" : "#404040"}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => speech.stop()}
+            disabled={presentText === "" || isGenerating}
+            style={styles.leftButton}
+          >
+            <Pause
+              size={24}
+              color={presentText === "" || isGenerating ? "#B0B0B0" : "#404040"}
+            />
+          </TouchableOpacity>
+        </View>
       )}
       <View style={styles.buttonContainer}>
         {isEditing ? (
@@ -346,6 +382,17 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     fontWeight: "bold",
     padding: 15,
+  },
+  ttsContainer: {
+    height: 70,
+    borderTopWidth: 1,
+    borderTopColor: "#dddddd",
+    backgroundColor: "#F2F1F1",
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 20,
+    gap: 20,
   },
   generatingContainer: {
     flexDirection: "row",

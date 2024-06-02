@@ -32,8 +32,9 @@ import useUndo from "use-undo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Entry } from "@/types";
 import { useSpeech } from "@/hooks/useSpeech";
+import { IconButton } from "@/components/IconButton";
 
-export default function GeneratePage() {
+export default function GenerateScreen() {
   const HOST = "http://192.168.10.101:11434";
   const MODEL = "vecteus";
   const NUM_CONTEXT = 18384;
@@ -231,7 +232,7 @@ export default function GeneratePage() {
                   setIsEditing(true);
                 }}
                 onPressMemoryButton={() => router.navigate("memory")}
-                onPressTTSButton={() => setTtsMode(true)}
+                onPressTTSButton={() => setTtsMode((prev) => !prev)}
               />
             ),
         }}
@@ -272,88 +273,52 @@ export default function GeneratePage() {
       )}
       {ttsMode && (
         <View style={styles.ttsContainer}>
-          <TouchableOpacity
+          <IconButton
+            icon={Play}
             onPress={() => speech.speak(presentText)}
             disabled={presentText === "" || isGenerating}
-            style={styles.leftButton}
-          >
-            <Play
-              size={24}
-              color={presentText === "" || isGenerating ? "#B0B0B0" : "#404040"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
+          />
+          <IconButton
+            icon={Pause}
             onPress={() => speech.stop()}
             disabled={presentText === "" || isGenerating}
-            style={styles.leftButton}
-          >
-            <Pause
-              size={24}
-              color={presentText === "" || isGenerating ? "#B0B0B0" : "#404040"}
-            />
-          </TouchableOpacity>
+          />
         </View>
       )}
       <View style={styles.buttonContainer}>
         {isEditing ? (
           <>
-            <TouchableOpacity
-              style={styles.leftButton}
-              onPress={() => setEditingText("")}
-            >
-              <Trash2 size={24} color="#404040" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.leftButton}
+            <IconButton icon={Trash2} onPress={() => setEditingText("")} />
+            <IconButton
+              icon={Check}
               onPress={() => {
                 updateText(editingText);
                 setIsEditing(false);
               }}
-            >
-              <Check size={24} color="#404040" />
-            </TouchableOpacity>
+            />
           </>
         ) : (
           <>
-            <TouchableOpacity
-              onPress={() => undoText()}
+            <IconButton
+              icon={Undo}
+              onPress={undoText}
               disabled={!canUndo || isGenerating}
-              style={styles.leftButton}
-            >
-              <Undo
-                size={24}
-                color={!canUndo || isGenerating ? "#B0B0B0" : "#404040"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => redoText()}
+            />
+            <IconButton
+              icon={Redo}
+              onPress={redoText}
               disabled={!canRedo || isGenerating}
-              style={{ ...styles.leftButton, flexGrow: 1 }}
-            >
-              <Redo
-                size={24}
-                color={!canRedo || isGenerating ? "#B0B0B0" : "#404040"}
-              />
-            </TouchableOpacity>
-            {/* <TouchableOpacity */}
-            {/*   onPress={() => { */}
-            {/*     undoText(); */}
-            {/*     generateNovel(presentText); */}
-            {/*   }} */}
-            {/*   disabled={isGenerating} */}
-            {/*   style={styles.leftButton} */}
-            {/* > */}
-            {/*   <RefreshCw size={24} color="#404040" /> */}
-            {/* </TouchableOpacity> */}
-            <TouchableOpacity
-              style={{ ...styles.generateButton, backgroundColor: "#404040" }}
+              style={{ flexGrow: 1 }}
+            />
+            <IconButton
+              icon={ChevronsRight}
               onPress={() => {
                 generateNovel(makePrompt(presentText, context as string));
               }}
               disabled={presentText === "" || isGenerating || isEditing}
-            >
-              <ChevronsRight size={24} color="#FAF9F6" />
-            </TouchableOpacity>
+              color="#FAF9F6"
+              style={styles.generateButton}
+            />
           </>
         )}
       </View>
@@ -389,10 +354,11 @@ const styles = StyleSheet.create({
     borderTopColor: "#dddddd",
     backgroundColor: "#F2F1F1",
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     width: "100%",
     paddingHorizontal: 20,
-    gap: 20,
+    gap: 30,
   },
   generatingContainer: {
     flexDirection: "row",
@@ -416,7 +382,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     paddingHorizontal: 20,
-    gap: 20,
+    gap: 30,
   },
   leftButton: {
     padding: 10,
@@ -430,5 +396,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginVertical: 10,
+    backgroundColor: "#404040",
   },
 });

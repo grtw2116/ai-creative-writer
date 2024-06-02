@@ -3,3 +3,8 @@ export type Entry = {
   text: string;
   context: string;
 };
+
+export type EntryWithUniqueKey = {
+  uniqueKey: string;
+  entry: Entry;
+};

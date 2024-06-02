@@ -1,4 +1,5 @@
-import { Entry } from "@/types";
+import { useStorage } from "@/hooks/useStorage";
+import { KeyedEntry } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, Stack, useFocusEffect } from "expo-router";
 import { EllipsisVertical, Plus } from "lucide-react-native";
@@ -13,12 +14,7 @@ import {
   View,
 } from "react-native";
 
-type ListItem = {
-  key: string;
-  entry: Entry;
-};
-
-function ListItem({ item }: { item: ListItem }) {
+function ListItem({ item }: { item: KeyedEntry }) {
   return (
     <Link
       href={{ pathname: "generate", params: { uniqueKey: item.key } }}
@@ -32,27 +28,18 @@ function ListItem({ item }: { item: ListItem }) {
   );
 }
 
-export default function IndexPage() {
-  const [list, setList] = useState<ListItem[]>([]);
+export default function MainScreen() {
+  const [list, setList] = useState<KeyedEntry[]>([]);
+  const { loadAllEntries } = useStorage();
 
   // 起動時にデータを読み込む
   useFocusEffect(
     useCallback(() => {
-      const loadEntries = async () => {
-        const keys = await AsyncStorage.getAllKeys();
-
-        const list: ListItem[] = [];
-        for (const k of keys) {
-          const value = await AsyncStorage.getItem(k);
-          if (!value) continue;
-
-          list.push({ key: k, entry: JSON.parse(value) });
-        }
-
-        setList(list);
+      const loadAndSetEntries = async () => {
+        const entries = await loadAllEntries();
+        setList(entries);
       };
-
-      loadEntries();
+      loadAndSetEntries();
     }, []),
   );
 

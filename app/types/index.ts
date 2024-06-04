@@ -3,6 +3,13 @@ export type Entry = {
   summary: string;
   text: string;
   context: string;
+  options: Options;
+};
+
+type Options = {
+  model: string;
+  contextLength: number;
+  generatingLength: number;
 };
 
 export type KeyedEntry = {

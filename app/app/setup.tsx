@@ -1,14 +1,18 @@
 import { useStorage } from "@/hooks/useStorage";
 import { Entry } from "@/types";
+import Slider from "@react-native-community/slider";
+import { Picker } from "@react-native-picker/picker";
 import { Stack, router } from "expo-router";
 import { Check } from "lucide-react-native";
 import { useState } from "react";
 import {
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 
 const key = new Date().toISOString();
@@ -25,11 +29,16 @@ export default function SetupScreen() {
     summary: "",
     text: "",
     context: "",
+    options: {
+      model: "vecteus",
+      contextLength: 8,
+      generatingLength: 8,
+    },
   });
   const { saveEntry } = useStorage();
 
   return (
-    <>
+    <SafeAreaView>
       <Stack.Screen
         options={{
           title: "新規作成",
@@ -81,8 +90,61 @@ export default function SetupScreen() {
           キャラクターの名前や設定、舞台設定など、ストーリー生成時に記憶させたい情報を入力してください。
           ここに入力された文章は、生成時にプロンプトの先頭に追加されます。
         </Text>
+        <Text style={styles.h2}>生成設定</Text>
+        <Text style={styles.h3}>AIモデル</Text>
+        <Picker
+          selectedValue={newEntry.options.model}
+          onValueChange={(newValue) =>
+            setNewEntry({
+              ...newEntry,
+              options: { ...newEntry.options, model: newValue },
+            })
+          }
+        >
+          <Picker.Item label="Vecteus-v1" value="vecteus" />
+          <Picker.Item label="Ninja-v1" value="ninja" />
+        </Picker>
+        <Text style={styles.h3}>コンテキストの文字数</Text>
+        <View style={styles.sliderContainer}>
+          <Slider
+            style={styles.slider}
+            value={newEntry.options.contextLength}
+            step={1}
+            onValueChange={(newValue) =>
+              setNewEntry({
+                ...newEntry,
+                options: { ...newEntry.options, contextLength: newValue },
+              })
+            }
+            minimumValue={8}
+            maximumValue={17}
+          />
+          <Text>{`${Math.pow(2, newEntry.options.contextLength)} 文字`}</Text>
+        </View>
+        <Text style={styles.tips}>
+          コンテキストの文字数が多いほど、AIが物語を生成する際に参照する情報が増えます。
+          ただし、VRAMの使用量が増加し、生成速度が低下する可能性があります。
+          お使いのデバイスのスペックに合わせて調整してください。
+        </Text>
+        <Text style={styles.h3}>一度に生成する文字数</Text>
+        <View style={styles.sliderContainer}>
+          <Slider
+            style={styles.slider}
+            value={newEntry.options.generatingLength}
+            step={1}
+            onValueChange={(newValue) =>
+              setNewEntry({
+                ...newEntry,
+                options: { ...newEntry.options, generatingLength: newValue },
+              })
+            }
+            minimumValue={8}
+            maximumValue={14}
+          />
+          <Text>{`${Math.pow(2, newEntry.options.generatingLength)} 文字`}</Text>
+        </View>
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 }
 
@@ -93,6 +155,15 @@ const styles = StyleSheet.create({
   optionContainer: {
     paddingHorizontal: 16,
   },
+  sliderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  slider: {
+    width: "75%",
+  },
   h2: {
     fontSize: 24,
     fontWeight: "bold",
@@ -102,7 +173,6 @@ const styles = StyleSheet.create({
   h3: {
     fontSize: 18,
     fontWeight: "bold",
-    marginTop: 16,
     marginBottom: 12,
   },
   required: {
@@ -110,9 +180,9 @@ const styles = StyleSheet.create({
     color: "red",
   },
   tips: {
-    marginTop: 8,
     color: "#999999",
     fontSize: 12,
+    marginBottom: 24,
   },
   titleInput: {
     paddingHorizontal: 12,
@@ -120,6 +190,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#737373",
     borderRadius: 4,
+    marginBottom: 12,
   },
   textArea: {
     paddingHorizontal: 12,
@@ -129,5 +200,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     height: 160,
     lineHeight: 20,
+    marginBottom: 12,
   },
 });

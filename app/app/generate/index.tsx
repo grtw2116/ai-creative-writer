@@ -49,9 +49,13 @@ export default function GenerateScreen() {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [ttsMode, setTtsMode] = useState<boolean>(false);
   const [currentProgress, setCurrentProgress] = useState<number>(0);
-  const [title, setTitle] = useState<string>("");
-  const [context, setContext] = useState<string>("");
-  const [summary, setSummary] = useState<string>("");
+  const [entry, setEntry] = useState<Entry>({
+    title: "",
+    summary: "",
+    text: "",
+    context: "",
+    options: { model: "vecteus", contextLength: 8, generatingLength: 8 },
+  });
 
   const scrollViewRef = useRef<ScrollView>(null);
   const newTextRef = useRef<string>("");
@@ -72,9 +76,7 @@ export default function GenerateScreen() {
         const entry = await loadEntry(key);
 
         setText(entry.text);
-        setTitle(entry.title);
-        setContext(entry.context);
-        setSummary(entry.summary);
+        setEntry(entry);
       };
 
       loadEntries();
@@ -85,14 +87,15 @@ export default function GenerateScreen() {
     setText(text);
 
     const key = uniqueKey as string;
-    const entry: Entry = {
-      title: title,
-      summary: summary,
+    const entryToSave: Entry = {
+      title: entry.title,
+      summary: entry.summary,
       text: text,
-      context: context,
+      context: entry.context,
+      options: entry.options,
     };
 
-    await saveEntry(key, entry);
+    await saveEntry(key, entryToSave);
   };
 
   const startSlideUp = () => {
@@ -170,10 +173,10 @@ export default function GenerateScreen() {
     }
   };
 
-  const makePrompt = (text: string, summary: string, context: string) => {
-    const titleText = title ? `タイトル：${title}\n` : "";
-    const summaryText = summary ? `あらすじ：${summary}\n` : "";
-    const contextText = context ? `設定：${context}\n` : "";
+  const makePrompt = (text: string) => {
+    const titleText = entry.title ? `タイトル：${entry.title}\n` : "";
+    const summaryText = entry.summary ? `あらすじ：${entry.summary}\n` : "";
+    const contextText = entry.context ? `設定：${entry.context}\n` : "";
     const divider = "---\n";
 
     return `${titleText}${summaryText}${contextText}${divider}${text}`;
@@ -241,8 +244,8 @@ export default function GenerateScreen() {
         }}
       />
       <ScrollView ref={scrollViewRef} style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.summary}>{summary}</Text>
+        <Text style={styles.title}>{entry.title}</Text>
+        <Text style={styles.summary}>{entry.summary}</Text>
         <View style={styles.divider} />
         {isEditing ? (
           <TextInput
@@ -319,7 +322,7 @@ export default function GenerateScreen() {
             <IconButton
               icon={ChevronsRight}
               onPress={() => {
-                const prompt = makePrompt(presentText, summary, context);
+                const prompt = makePrompt(presentText);
                 console.log("prompt", prompt);
                 generateNovel(prompt);
               }}

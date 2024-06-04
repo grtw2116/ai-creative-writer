@@ -32,7 +32,7 @@ export default function SetupScreen() {
     options: {
       model: "vecteus",
       contextLength: 8,
-      generatingLength: 8,
+      predictionLength: 8,
     },
   });
   const { saveEntry } = useStorage();
@@ -130,18 +130,18 @@ export default function SetupScreen() {
         <View style={styles.sliderContainer}>
           <Slider
             style={styles.slider}
-            value={newEntry.options.generatingLength}
+            value={newEntry.options.predictionLength}
             step={1}
             onValueChange={(newValue) =>
               setNewEntry({
                 ...newEntry,
-                options: { ...newEntry.options, generatingLength: newValue },
+                options: { ...newEntry.options, predictionLength: newValue },
               })
             }
             minimumValue={8}
             maximumValue={14}
           />
-          <Text>{`${Math.pow(2, newEntry.options.generatingLength)} 文字`}</Text>
+          <Text>{`${Math.pow(2, newEntry.options.predictionLength)} 文字`}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

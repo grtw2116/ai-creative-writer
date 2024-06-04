@@ -9,7 +9,7 @@ export type Entry = {
 type Options = {
   model: string;
   contextLength: number;
-  generatingLength: number;
+  predictionLength: number;
 };
 
 export type KeyedEntry = {

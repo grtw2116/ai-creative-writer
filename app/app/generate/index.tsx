@@ -34,10 +34,7 @@ import { IconButton } from "@/components/IconButton";
 import { useStorage } from "@/hooks/useStorage";
 
 export default function GenerateScreen() {
-  const HOST = "http://192.168.10.101:11434";
-  const MODEL = "vecteus";
-  const NUM_CONTEXT = 18384;
-  const NUM_PREDICT = 128;
+  const HOST = `http://${process.env.EXPO_PUBLIC_DEFAULT_HOST_IP_ADDRESS}:${process.env.EXPO_PUBLIC_DEFAULT_HOST_PORT}`;
 
   const speech = useSpeech();
   const { uniqueKey } = useLocalSearchParams();
@@ -54,7 +51,7 @@ export default function GenerateScreen() {
     summary: "",
     text: "",
     context: "",
-    options: { model: "vecteus", contextLength: 8, generatingLength: 8 },
+    options: { model: "vecteus", contextLength: 8, predictionLength: 8 },
   });
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -88,11 +85,8 @@ export default function GenerateScreen() {
 
     const key = uniqueKey as string;
     const entryToSave: Entry = {
-      title: entry.title,
-      summary: entry.summary,
+      ...entry,
       text: text,
-      context: entry.context,
-      options: entry.options,
     };
 
     await saveEntry(key, entryToSave);
@@ -198,12 +192,12 @@ export default function GenerateScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: MODEL,
+          model: entry.options.model,
           prompt: prompt,
           stream: true,
           options: {
-            num_ctx: NUM_CONTEXT,
-            num_predict: NUM_PREDICT,
+            num_ctx: entry.options.contextLength,
+            num_predict: entry.options.predictionLength,
           },
         }),
       });
@@ -277,7 +271,7 @@ export default function GenerateScreen() {
           <Text style={styles.generatingText}>生成中...</Text>
           <Text
             style={styles.progressText}
-          >{`${currentProgress} / ${NUM_PREDICT}`}</Text>
+          >{`${currentProgress} / ${entry.options.predictionLength}`}</Text>
         </Animated.View>
       )}
       {ttsMode && (
@@ -323,7 +317,6 @@ export default function GenerateScreen() {
               icon={ChevronsRight}
               onPress={() => {
                 const prompt = makePrompt(presentText);
-                console.log("prompt", prompt);
                 generateNovel(prompt);
               }}
               disabled={isGenerating || isEditing}

@@ -1,5 +1,5 @@
 import { useStorage } from "@/hooks/useStorage";
-import { Entry } from "@/types";
+import { Entry, Genre } from "@/types";
 import Slider from "@react-native-community/slider";
 import { Picker } from "@react-native-picker/picker";
 import { Stack, router } from "expo-router";
@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { OptionItemContainer } from "./components/OptionItemContainer";
+import { GenreOption } from "./components/GenreOption";
 
 const key = new Date().toISOString();
 const titlePlaceholder = "吾輩は猫である";
@@ -23,18 +25,33 @@ const contextPlaceholder = `吾輩（猫）: 主人公であり、語り手の�
 寒月: 苦沙弥先生の友人。真面目で誠実な人物。
 迷亭: 苦沙弥先生の友人。皮肉屋で冗談が好き。`;
 
+const initialGenres: Genre[] = [
+  { key: "fantasy", label: "ファンタジー", selected: false },
+  { key: "scifi", label: "SF", selected: false },
+  { key: "mystery", label: "ミステリー", selected: false },
+  { key: "romance", label: "恋愛", selected: false },
+  { key: "thriller", label: "スリラー", selected: false },
+  { key: "horror", label: "ホラー", selected: false },
+  { key: "historical", label: "歴史", selected: false },
+  { key: "adventure", label: "冒険", selected: false },
+  { key: "young adult", label: "ヤングアダルト", selected: false },
+  { key: "comedy", label: "コメディ", selected: false },
+];
+
 export default function SetupScreen() {
   const [newEntry, setNewEntry] = useState<Entry>({
     title: "",
+    genres: [],
     summary: "",
     text: "",
     context: "",
     options: {
       model: "vecteus",
-      contextLength: 8,
-      predictionLength: 8,
+      contextLength: 12,
+      predictionLength: 7,
     },
   });
+  const [genres, setGenres] = useState<Genre[]>(initialGenres);
   const { saveEntry } = useStorage();
 
   return (
@@ -60,25 +77,47 @@ export default function SetupScreen() {
       />
       <ScrollView style={styles.optionContainer}>
         <Text style={styles.h2}>物語設定</Text>
-        <Text style={styles.h3}>
-          タイトル<Text style={styles.required}>*</Text>
-        </Text>
-        <TextInput
-          style={styles.titleInput}
-          onChangeText={(text) => setNewEntry({ ...newEntry, title: text })}
-          placeholder={titlePlaceholder}
-        />
-        <Text style={styles.h3}>あらすじ</Text>
-        <TextInput
-          style={styles.textArea}
-          onChangeText={(text) => setNewEntry({ ...newEntry, summary: text })}
-          placeholder={textPlaceholder}
-          multiline
-        />
-        <Text style={styles.tips}>
-          あらすじに基づいてAIが物語を生成します。
-          ここに入力された文章は、生成時にプロンプトの先頭に追加されます。
-        </Text>
+        <OptionItemContainer title="タイトル">
+          <TextInput
+            style={styles.titleInput}
+            onChangeText={(text) => setNewEntry({ ...newEntry, title: text })}
+            placeholder={titlePlaceholder}
+          />
+        </OptionItemContainer>
+        <OptionItemContainer title="ジャンル">
+          <View style={styles.genreContainer}>
+            {genres.map((genre) => (
+              <GenreOption
+                key={genre.key}
+                label={genre.label}
+                selected={genre.selected}
+                onPress={(_e) => {
+                  setGenres(
+                    genres.map((g) =>
+                      g.key === genre.key ? { ...g, selected: !g.selected } : g,
+                    ),
+                  );
+                  setNewEntry({
+                    ...newEntry,
+                    genres: genres.filter((g) => g.selected),
+                  });
+                }}
+              />
+            ))}
+          </View>
+        </OptionItemContainer>
+        <OptionItemContainer title="あらすじ">
+          <TextInput
+            style={styles.textArea}
+            onChangeText={(text) => setNewEntry({ ...newEntry, summary: text })}
+            placeholder={textPlaceholder}
+            multiline
+          />
+          <Text style={styles.tips}>
+            あらすじに基づいてAIが物語を生成します。
+            ここに入力された文章は、生成時にプロンプトの先頭に追加されます。
+          </Text>
+        </OptionItemContainer>
         <Text style={styles.h3}>重要な物語設定</Text>
         <TextInput
           style={styles.textArea}
@@ -138,7 +177,7 @@ export default function SetupScreen() {
                 options: { ...newEntry.options, predictionLength: newValue },
               })
             }
-            minimumValue={8}
+            minimumValue={7}
             maximumValue={14}
           />
           <Text>{`${Math.pow(2, newEntry.options.predictionLength)} 文字`}</Text>
@@ -149,6 +188,12 @@ export default function SetupScreen() {
 }
 
 const styles = StyleSheet.create({
+  genreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
   doneButton: {
     padding: 8,
   },
@@ -165,7 +210,7 @@ const styles = StyleSheet.create({
     width: "75%",
   },
   h2: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     marginTop: 16,
     marginBottom: 12,
@@ -182,7 +227,7 @@ const styles = StyleSheet.create({
   tips: {
     color: "#999999",
     fontSize: 12,
-    marginBottom: 24,
+    marginTop: 6,
   },
   titleInput: {
     paddingHorizontal: 12,
@@ -190,7 +235,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#737373",
     borderRadius: 4,
-    marginBottom: 12,
   },
   textArea: {
     paddingHorizontal: 12,
@@ -200,6 +244,5 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     height: 160,
     lineHeight: 20,
-    marginBottom: 12,
   },
 });

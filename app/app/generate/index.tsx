@@ -48,6 +48,7 @@ export default function GenerateScreen() {
   const [currentProgress, setCurrentProgress] = useState<number>(0);
   const [entry, setEntry] = useState<Entry>({
     title: "",
+    genres: [],
     summary: "",
     text: "",
     context: "",
@@ -169,11 +170,14 @@ export default function GenerateScreen() {
 
   const makePrompt = (text: string) => {
     const titleText = entry.title ? `タイトル：${entry.title}\n` : "";
+    const genreText = entry.genres.length
+      ? `ジャンル：${entry.genres.map((genre) => genre.label).join(", ")}\n`
+      : "";
     const summaryText = entry.summary ? `あらすじ：${entry.summary}\n` : "";
     const contextText = entry.context ? `設定：${entry.context}\n` : "";
     const divider = "---\n";
 
-    return `${titleText}${summaryText}${contextText}${divider}${text}`;
+    return `${titleText}${genreText}${summaryText}${contextText}${divider}${text}`;
   };
 
   const generateNovel = async (prompt: string) => {
@@ -196,8 +200,8 @@ export default function GenerateScreen() {
           prompt: prompt,
           stream: true,
           options: {
-            num_ctx: entry.options.contextLength,
-            num_predict: entry.options.predictionLength,
+            num_ctx: Math.pow(2, entry.options.contextLength),
+            num_predict: Math.pow(2, entry.options.predictionLength),
           },
         }),
       });
@@ -271,7 +275,7 @@ export default function GenerateScreen() {
           <Text style={styles.generatingText}>生成中...</Text>
           <Text
             style={styles.progressText}
-          >{`${currentProgress} / ${entry.options.predictionLength}`}</Text>
+          >{`${currentProgress} / ${Math.pow(2, entry.options.predictionLength)}`}</Text>
         </Animated.View>
       )}
       {ttsMode && (
@@ -317,6 +321,7 @@ export default function GenerateScreen() {
               icon={ChevronsRight}
               onPress={() => {
                 const prompt = makePrompt(presentText);
+                console.log(prompt);
                 generateNovel(prompt);
               }}
               disabled={isGenerating || isEditing}

@@ -113,5 +113,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#404040",
     justifyContent: "center",
     alignItems: "center",
+    elevation: 4,
   },
 });

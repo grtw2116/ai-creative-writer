@@ -76,7 +76,6 @@ export default function GenerateScreen() {
         setText(entry.text);
         setEntry(entry);
       };
-
       loadEntries();
     }, []),
   );
@@ -235,7 +234,12 @@ export default function GenerateScreen() {
                   setEditingText(presentText);
                   setIsEditing(true);
                 }}
-                onPressMemoryButton={() => router.navigate("memory")}
+                onPressMemoryButton={() =>
+                  router.navigate({
+                    pathname: "story-settings",
+                    params: { key: uniqueKey },
+                  })
+                }
                 onPressTTSButton={() => setTtsMode((prev) => !prev)}
               />
             ),
@@ -321,7 +325,6 @@ export default function GenerateScreen() {
               icon={ChevronsRight}
               onPress={() => {
                 const prompt = makePrompt(presentText);
-                console.log(prompt);
                 generateNovel(prompt);
               }}
               disabled={isGenerating || isEditing}

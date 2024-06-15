@@ -39,7 +39,7 @@ export function PopupMenu({
         </MenuOption>
         <MenuOption onSelect={onPressMemoryButton}>
           <Book size={18} color="#404040" />
-          <Text style={styles.optionText}>メモリ</Text>
+          <Text style={styles.optionText}>設定を編集</Text>
         </MenuOption>
         <MenuOption onSelect={onPressTTSButton}>
           <Speech size={18} color="#404040" />

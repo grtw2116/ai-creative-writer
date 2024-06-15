@@ -32,6 +32,7 @@ import { Entry } from "@/types";
 import { useSpeech } from "@/hooks/useSpeech";
 import { IconButton } from "@/components/IconButton";
 import { useStorage } from "@/hooks/useStorage";
+import Slider from "@react-native-community/slider";
 
 export default function GenerateScreen() {
   const HOST = `http://${process.env.EXPO_PUBLIC_DEFAULT_HOST_IP_ADDRESS}:${process.env.EXPO_PUBLIC_DEFAULT_HOST_PORT}`;
@@ -40,6 +41,7 @@ export default function GenerateScreen() {
   const { uniqueKey } = useLocalSearchParams();
   const { loadEntry, saveEntry } = useStorage();
 
+  const [selectedSentence, setSelectedSentence] = useState<number | null>(null);
   const [newText, setNewText] = useState<string>("");
   const [editingText, setEditingText] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -59,13 +61,93 @@ export default function GenerateScreen() {
   const newTextRef = useRef<string>("");
 
   const [
-    textState,
-    { set: setText, undo: undoText, redo: redoText, canUndo, canRedo },
-  ] = useUndo("");
+    sentencesState,
+    {
+      set: setSentences,
+      undo: undoSentences,
+      redo: redoSentences,
+      canUndo,
+      canRedo,
+    },
+  ] = useUndo([] as string[]);
 
-  const { present: presentText } = textState;
+  const { present: presentSentences } = sentencesState;
 
   const translateYAnim = useRef(new Animated.Value(40)).current;
+
+  const speechSentences = async (startIndex: number) => {
+    let currentIndex = startIndex;
+
+    const onDone = () => {
+      if (currentIndex >= presentSentences.length) {
+        return;
+      }
+      setSelectedSentence(currentIndex);
+      speech.speak(presentSentences[currentIndex++], onDone);
+    };
+
+    speech.speak(presentSentences[currentIndex++], onDone);
+  };
+
+  const splitText = (text: string): string[] => {
+    // 正規表現で文や台詞を分割（句読点、台詞、改行）
+    const regex = /(?<=。|！|？|」)(?=[^\s」]|$)|(?<=」)|\n/g;
+    const result = text
+      .split(regex)
+      .filter((sentence) => sentence.trim() !== "");
+
+    // 結果の配列を作成
+    const sentences: string[] = [];
+    let temp = "";
+
+    for (let i = 0; i < result.length; i++) {
+      if (result[i].includes("「") && !result[i].includes("」")) {
+        temp = result[i];
+      } else if (temp !== "") {
+        temp += result[i];
+        if (result[i].includes("」")) {
+          sentences.push(temp.trim());
+          temp = "";
+        }
+      } else {
+        sentences.push(result[i].trim());
+      }
+    }
+
+    // 地の文と台詞の連結部分を分割
+    const finalSentences: string[] = [];
+    const sentenceRegex = /[^。！？]*[。！？]/g;
+
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i];
+      if (sentence.includes("「") && sentence.includes("」")) {
+        const parts = sentence
+          .split(/(?<=」)/)
+          .filter((part) => part.trim() !== "");
+        for (let j = 0; j < parts.length; j++) {
+          if (j === parts.length - 1 && i < sentences.length - 1) {
+            // Check if the next sentence starts with a dialogue and the current part doesn't end with a punctuation
+            if (
+              !/[。！？]$/.test(parts[j]) &&
+              !sentences[i + 1].includes("「")
+            ) {
+              finalSentences.push(parts[j] + sentences[i + 1]);
+              i++; // Skip the next sentence as it's combined
+            } else {
+              finalSentences.push(parts[j]);
+            }
+          } else {
+            finalSentences.push(parts[j]);
+          }
+        }
+      } else {
+        const parts = sentence.match(sentenceRegex) || [sentence];
+        finalSentences.push(...parts.map((part) => part.trim()));
+      }
+    }
+
+    return finalSentences;
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +155,7 @@ export default function GenerateScreen() {
         const key = uniqueKey as string;
         const entry = await loadEntry(key);
 
-        setText(entry.text);
+        setSentences(splitText(entry.text));
         setEntry(entry);
       };
       loadEntries();
@@ -81,7 +163,8 @@ export default function GenerateScreen() {
   );
 
   const updateText = async (text: string) => {
-    setText(text);
+    const sentences = splitText(text);
+    setSentences(sentences);
 
     const key = uniqueKey as string;
     const entryToSave: Entry = {
@@ -213,7 +296,7 @@ export default function GenerateScreen() {
         "ネットワーク環境を確認の上もう一度お試しください。",
       );
     } finally {
-      updateText(presentText + newTextRef.current);
+      updateText(presentSentences.join("\n") + newTextRef.current);
       newTextRef.current = "";
       setNewText("");
       setCurrentProgress(0);
@@ -231,7 +314,7 @@ export default function GenerateScreen() {
             isEditing || (
               <PopupMenu
                 onPressEditButton={() => {
-                  setEditingText(presentText);
+                  setEditingText(presentSentences.join("\n"));
                   setIsEditing(true);
                 }}
                 onPressMemoryButton={() =>
@@ -240,7 +323,10 @@ export default function GenerateScreen() {
                     params: { key: uniqueKey },
                   })
                 }
-                onPressTTSButton={() => setTtsMode((prev) => !prev)}
+                onPressTTSButton={() => {
+                  setTtsMode((prev) => !prev);
+                  setSelectedSentence(0);
+                }}
               />
             ),
         }}
@@ -249,7 +335,7 @@ export default function GenerateScreen() {
         <Text style={styles.title}>{entry.title}</Text>
         <Text style={styles.summary}>{entry.summary}</Text>
         <View style={styles.divider} />
-        {isEditing ? (
+        {isEditing && (
           <TextInput
             value={editingText}
             placeholder="ここに文章を入力してください。"
@@ -257,13 +343,26 @@ export default function GenerateScreen() {
             onChangeText={(text) => setEditingText(text)}
             multiline
           />
+        )}
+        {!isEditing && presentSentences.length === 0 && newText === "" ? (
+          <Text style={styles.emptyText}>ここに文章が生成されます。</Text>
         ) : (
-          <Text style={styles.text}>
-            {presentText === "" && newText === "" ? (
-              <Text style={styles.emptyText}>ここに文章が生成されます。</Text>
-            ) : (
-              presentText
-            )}
+          <Text>
+            {presentSentences.map((sentence, index) => (
+              <Text
+                key={index}
+                style={
+                  selectedSentence !== null &&
+                  selectedSentence === index &&
+                  ttsMode
+                    ? styles.selectedSentence
+                    : styles.text
+                }
+                onPress={() => setSelectedSentence(index)}
+              >
+                {sentence + "\n"}
+              </Text>
+            ))}
             <Text style={styles.newText}>{newText}</Text>
           </Text>
         )}
@@ -288,15 +387,27 @@ export default function GenerateScreen() {
       )}
       {ttsMode && (
         <View style={styles.ttsContainer}>
-          <IconButton
-            icon={Play}
-            onPress={() => speech.speak(presentText)}
-            disabled={presentText === "" || isGenerating}
-          />
-          <IconButton
-            icon={Pause}
-            onPress={() => speech.stop()}
-            disabled={presentText === "" || isGenerating}
+          <Text>読み上げ</Text>
+          <View style={styles.ttsButtonContainer}>
+            <IconButton
+              icon={Play}
+              onPress={() => speechSentences(selectedSentence || 0)}
+              disabled={presentSentences.length === 0 || isGenerating}
+            />
+            <IconButton
+              icon={Pause}
+              onPress={() => speech.stop()}
+              disabled={presentSentences.length === 0 || isGenerating}
+            />
+          </View>
+          <Slider
+            style={{ width: "100%" }}
+            minimumValue={0}
+            maximumValue={presentSentences.length - 1}
+            step={1}
+            value={selectedSentence || 0}
+            onValueChange={(value) => setSelectedSentence(value)}
+            disabled={presentSentences.length === 0 || isGenerating}
           />
         </View>
       )}
@@ -316,19 +427,19 @@ export default function GenerateScreen() {
           <>
             <IconButton
               icon={Undo}
-              onPress={undoText}
+              onPress={undoSentences}
               disabled={!canUndo || isGenerating}
             />
             <IconButton
               icon={Redo}
-              onPress={redoText}
+              onPress={redoSentences}
               disabled={!canRedo || isGenerating}
               style={{ flexGrow: 1 }}
             />
             <IconButton
               icon={ChevronsRight}
               onPress={() => {
-                const prompt = makePrompt(presentText);
+                const prompt = makePrompt(presentSentences.join("\n"));
                 generateNovel(prompt);
               }}
               disabled={isGenerating || isEditing}
@@ -374,6 +485,13 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     color: "#333",
   },
+  selectedSentence: {
+    fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",
+    fontSize: 18,
+    lineHeight: 36,
+    color: "#404040",
+    backgroundColor: "#ADD8E6",
+  },
   emptyText: {
     color: "#999",
   },
@@ -382,18 +500,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 36,
     fontWeight: "bold",
-    padding: 15,
   },
   ttsContainer: {
-    height: 70,
-    borderTopWidth: 1,
-    borderTopColor: "#dddddd",
+    borderWidth: 1,
+    borderColor: "#dddddd",
     backgroundColor: "#F2F1F1",
-    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    width: "100%",
     paddingHorizontal: 20,
+    paddingVertical: 10,
     gap: 30,
   },
   generatingContainer: {
@@ -433,5 +548,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginVertical: 10,
     backgroundColor: "#404040",
+  },
+  ttsButtonContainer: {
+    flexDirection: "row",
+    gap: 20,
   },
 });

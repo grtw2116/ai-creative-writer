@@ -1,7 +1,6 @@
-import { Entry, Genre } from "@/types";
+import { Entry } from "@/types";
 import Slider from "@react-native-community/slider";
 import { Picker } from "@react-native-picker/picker";
-import { useCallback, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -12,7 +11,6 @@ import {
 } from "react-native";
 import { OptionItemContainer } from "@/components/StorySettings/components/OptionItemContainer";
 import { GenreOption } from "@/components/StorySettings/components/GenreOption";
-import { useFocusEffect } from "expo-router";
 
 const titlePlaceholder = "吾輩は猫である";
 const textPlaceholder = `ある日、生まれたばかりの猫が捨てられ、苦沙弥先生の家に住みつきます。苦沙弥先生は中学校の英語教師で、厳格で少し気難しい性格です。猫は新しい家に住みつき、人間たちの生活を観察し始めます。苦沙弥先生の家には、妻と娘たちが住んでおり、猫は彼らの日常を眺めるのが好きです。特に、苦沙弥先生の友人である寒月と迷亭が訪れるときの会話に興味を持ちます。`;

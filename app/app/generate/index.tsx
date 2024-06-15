@@ -259,7 +259,11 @@ export default function GenerateScreen() {
           />
         ) : (
           <Text style={styles.text}>
-            {presentText}
+            {presentText === "" && newText === "" ? (
+              <Text style={styles.emptyText}>ここに文章が生成されます。</Text>
+            ) : (
+              presentText
+            )}
             <Text style={styles.newText}>{newText}</Text>
           </Text>
         )}
@@ -369,6 +373,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 36,
     color: "#333",
+  },
+  emptyText: {
+    color: "#999",
   },
   newText: {
     fontFamily: Platform.OS === "ios" ? "Hiragino Mincho ProN" : "serif",

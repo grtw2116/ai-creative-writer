@@ -29,7 +29,7 @@ export default function SetupScreen() {
     text: "",
     context: "",
     options: {
-      model: "vecteus",
+      model: "vecteus-v2",
       contextLength: 12,
       predictionLength: 7,
     },

@@ -251,15 +251,23 @@ export default function GenerateScreen() {
   };
 
   const makePrompt = (text: string) => {
-    const titleText = entry.title ? `タイトル：${entry.title}\n` : "";
-    const genreText = entry.genres.length
-      ? `ジャンル：${entry.genres.map((genre) => genre.label).join(", ")}\n`
-      : "";
-    const summaryText = entry.summary ? `あらすじ：${entry.summary}\n` : "";
-    const contextText = entry.context ? `設定：${entry.context}\n` : "";
-    const divider = "---\n";
+    const prompt =
+      "あなたはプロの小説家です。以下の設定をもとに小説を書いてください。\n\n";
+    const titleText = entry.title ? `# タイトル\n${entry.title}\n\n` : "";
+    const genreText =
+      entry.genres.filter((genre) => genre.selected).length !== 0
+        ? `# ジャンル\n${entry.genres
+            .filter((genre) => genre.selected)
+            .map((genre) => genre.label)
+            .join(", ")}\n\n`
+        : "";
+    const summaryText = entry.summary ? `# あらすじ\n${entry.summary}\n\n` : "";
+    const contextText = entry.context ? `# 設定\n${entry.context}\n\n` : "";
+    const divider = "--- 設定ここまで ---\n\n";
+    const content = "# 本文\n";
 
-    return `${titleText}${genreText}${summaryText}${contextText}${divider}${text}`;
+    // return `${prompt}${titleText}${genreText}${summaryText}${contextText}${divider}${text}`;
+    return `${titleText}${genreText}${summaryText}${contextText}${content}${text}`;
   };
 
   const generateNovel = async (prompt: string) => {
@@ -440,6 +448,7 @@ export default function GenerateScreen() {
               icon={ChevronsRight}
               onPress={() => {
                 const prompt = makePrompt(presentSentences.join("\n"));
+                console.log(prompt);
                 generateNovel(prompt);
               }}
               disabled={isGenerating || isEditing}

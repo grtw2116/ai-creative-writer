@@ -96,8 +96,11 @@ export function StorySettings({
             })
           }
         >
-          <Picker.Item label="Vecteus-v1" value="vecteus" />
-          <Picker.Item label="Ninja-v1" value="ninja" />
+          <Picker.Item label="Kagemusya-v1" value="kagemusya-v1" />
+          <Picker.Item label="Vecteus-v1" value="vecteus-v1" />
+          <Picker.Item label="Vecteus-v2" value="vecteus-v2" />
+          <Picker.Item label="Ninja-v1" value="ninja-v1" />
+          <Picker.Item label="Ninja-v2" value="ninja-v2" />
         </Picker>
         <Text style={styles.h3}>コンテキストの文字数</Text>
         <View style={styles.sliderContainer}>

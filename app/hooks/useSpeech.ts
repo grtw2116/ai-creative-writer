@@ -1,24 +1,17 @@
 import * as Speech from "expo-speech";
-import { Platform } from "react-native";
 
 export const useSpeech = () => {
-  const speak = (text: string, onDone?: () => void) => {
+  const speak = (text: string) => {
     Speech.speak(text, {
-      onDone: onDone,
       rate: 1.0,
-      voice:
-        Platform.OS === "ios"
-          ? "com.apple.voice.compact.ja-JP.Kyoko"
-          : "ja-JP-language",
+      language: "ja",
       pitch: 1.0,
     });
   };
-
-  const isSpeaking = Speech.isSpeakingAsync;
 
   const stop = Speech.stop;
   const pause = Speech.pause;
   const resume = Speech.resume;
 
-  return { speak, stop, pause, resume, isSpeaking };
+  return { speak, stop, pause, resume };
 };
